@@ -10,6 +10,7 @@
 
 #define MESSAGE_ID "message_id"
 #define ACCOUNT_ID "account_id"
+#define CONVERSATION_ID "conversation_id"
 
 
 

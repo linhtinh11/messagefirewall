@@ -14,7 +14,8 @@
 
 using namespace bb::pim::message;
 
-MFRule::MFRule()
+MFRule::MFRule(int type):
+        m_Type(type)
 {
     // TODO Auto-generated constructor stub
 
@@ -33,6 +34,11 @@ void MFRule::addCondition(const MFCondition &con)
 void MFRule::addAction(const MFAction &action)
 {
     m_Actions.append(action);
+}
+
+QList<MFCondition> MFRule::getConditions()
+{
+    return m_Conditions;
 }
 
 bool MFRule::apply(MessageService &service, Message &message)
@@ -60,7 +66,10 @@ bool MFRule::apply(MessageService &service, Message &message)
                 QVariantMap data;
                 data.insert(ACCOUNT_ID, QVariant(message.accountId()));
                 data.insert(MESSAGE_ID, QVariant(message.id()));
-                iAct->doAction(service, data);
+                if (m_Type == MF_RULE_SMS) {
+                    data.insert(CONVERSATION_ID, QVariant(message.conversationId()));
+                }
+                result = iAct->doAction(service, data);
             }
         }
     }

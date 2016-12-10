@@ -44,6 +44,12 @@ bool MFAction::doAction(MessageService &service, const QVariantMap &data)
                     service.remove(accId, msgId);
                     result = true;
                 }
+                if (data.contains(CONVERSATION_ID)) {
+                    ConversationKey conKey = data.value(CONVERSATION_ID).toString();
+                    if (ok_acc) {
+                        service.remove(accId, conKey);
+                    }
+                }
             }
             break;
         default:

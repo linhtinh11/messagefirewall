@@ -114,6 +114,8 @@
         <permission system="true">_sys_run_headless</permission>
         <permission system="true">_sys_headless_nostop</permission>
         <permission>access_pimdomain_messages</permission>
+        <permission>access_pimdomain_contacts</permission>
+        <permission>access_sms_mms</permission>
     </entryPoint>
 
     <invoke-target id="vn.ht.MessageFirewallService">
@@ -123,6 +125,11 @@
         <filter>
         	<action>bb.action.email.RECEIVED</action>
         	<mime-type>application/vnd.blackberry.MESSAGE_IDS</mime-type>
+            <property var="uris" value="data://local" />
+        </filter>
+        <filter>
+            <action>bb.action.system.STARTED</action>
+            <mime-type>application/vnd.blackberry.system.event.STARTED</mime-type>
             <property var="uris" value="data://local" />
         </filter>
     </invoke-target>

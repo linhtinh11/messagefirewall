@@ -11,6 +11,7 @@
 #include <bb/pim/message/Message>
 
 using namespace bb::pim::message;
+//using namespace bb::pim::contacts;
 
 MFCondition::MFCondition():
             m_Key(0),
@@ -19,7 +20,6 @@ MFCondition::MFCondition():
             m_Value("")
 {
     // TODO Auto-generated constructor stub
-
 }
 
 MFCondition::MFCondition(MF_KEY key, QString value, MF_OPERATOR op, MF_OPERATOR conOp):
@@ -94,6 +94,12 @@ bool MFCondition::doOperator(const QString &value)
                 result = true;
             }
             break;
+        case MF_OPERATOR_NINW:
+            result = isNotInWhiteList(value);
+            break;
+        case MF_OPERATOR_INW:
+            result = isInWhiteList(value);
+            break;
         default:
             qDebug() << "Invalid operator: " << m_Operator;
             break;
@@ -105,4 +111,72 @@ bool MFCondition::doOperator(const QString &value)
 bool MFCondition::isAndCondition()
 {
     return (m_CondOperator == MF_OPERATOR_AND);
+}
+
+void MFCondition::addWhiteList(const QList<QString> &list)
+{
+    m_WhiteList.append(list);
+}
+
+void MFCondition::addWhiteList(const QString &value)
+{
+    m_WhiteList.append(value);
+    qDebug() << "count: " << m_WhiteList.size();
+}
+
+void MFCondition::resetWhiteList()
+{
+    m_WhiteList.clear();
+}
+
+void MFCondition::addBlackList(const QList<QString> &list)
+{
+    m_BlackList.append(list);
+}
+
+void MFCondition::addBlackList(const QString &value)
+{
+    m_BlackList.append(value);
+}
+
+void MFCondition::resetBlackList()
+{
+    m_BlackList.clear();
+}
+
+void MFCondition::bfBuild()
+{
+
+}
+
+void MFCondition::bfContain(const QString &value)
+{
+    Q_UNUSED(value);
+}
+
+bool MFCondition::isInWhiteList(const QString &value)
+{
+    qDebug() << "check value: " << value;
+    qDebug() << "count: " << m_WhiteList.size();
+    if (m_WhiteList.size() > 0) {
+        QList<QString>::iterator it;
+        for (it = m_WhiteList.begin(); it != m_WhiteList.end(); it++) {
+            if (it->compare(value) == 0) {
+                qDebug() << "found: " << *it;
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+bool MFCondition::isNotInWhiteList(const QString &value)
+{
+    return !isInWhiteList(value);
+}
+
+int MFCondition::getOperator()
+{
+    return m_Operator;
 }
