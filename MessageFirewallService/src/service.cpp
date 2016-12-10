@@ -44,6 +44,8 @@ Service::Service() :
     rule.addAction(MFAction(MF_ACTION_DELETE));
     MFRule rule2;
     rule2.addCondition(MFCondition(MF_KEY_SUBJECT, "[BEAT-", MF_OPERATOR_SW, MF_OPERATOR_AND));
+    rule2.addCondition(MFCondition(MF_KEY_SUBJECT, "[BEAT] ", MF_OPERATOR_SW, MF_OPERATOR_OR));
+    rule2.addCondition(MFCondition(MF_KEY_SUBJECT, "[LGBT-", MF_OPERATOR_SW, MF_OPERATOR_OR));
     rule2.addAction(MFAction(MF_ACTION_DELETE));
     m_Rules.append(rule);
     m_Rules.append(rule2);
