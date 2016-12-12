@@ -174,6 +174,7 @@ bool MFCondition::isInContact(const QString &value)
         m_ContactService = new ContactService();
     }
     ContactSearchFilters filter;
+    filter.setLimit(1);
     filter.setSearchValue(value);
     return (m_ContactService->searchContactsByPhoneNumber(filter).size() > 0);
 }
