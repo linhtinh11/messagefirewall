@@ -9,9 +9,11 @@
 
 #include <bb/pim/message/MessageContact>
 #include <bb/pim/message/Message>
+#include <bb/pim/contacts/ContactService>
+#include <bb/pim/contacts/Contact>
 
 using namespace bb::pim::message;
-//using namespace bb::pim::contacts;
+using namespace bb::pim::contacts;
 
 MFCondition::MFCondition():
             m_Key(0),
@@ -20,6 +22,7 @@ MFCondition::MFCondition():
             m_Value("")
 {
     // TODO Auto-generated constructor stub
+    m_ContactService = NULL;
 }
 
 MFCondition::MFCondition(MF_KEY key, QString value, MF_OPERATOR op, MF_OPERATOR conOp):
@@ -28,11 +31,16 @@ MFCondition::MFCondition(MF_KEY key, QString value, MF_OPERATOR op, MF_OPERATOR 
         m_CondOperator(conOp),
         m_Value(value)
 {
+    m_ContactService = NULL;
 }
 
 MFCondition::~MFCondition()
 {
     // TODO Auto-generated destructor stub
+    if (m_ContactService != NULL) {
+        delete m_ContactService;
+        m_ContactService = NULL;
+    }
 }
 
 bool MFCondition::match(const Message &message)
@@ -94,11 +102,23 @@ bool MFCondition::doOperator(const QString &value)
                 result = true;
             }
             break;
-        case MF_OPERATOR_NINW:
-            result = isNotInWhiteList(value);
+        case MF_OPERATOR_NINCT:
+            result = !isInContact(value);
             break;
-        case MF_OPERATOR_INW:
+        case MF_OPERATOR_INCT:
+            result = isInContact(value);
+            break;
+        case MF_OPERATOR_NINWL:
+            result = !isInWhiteList(value);
+            break;
+        case MF_OPERATOR_INWL:
             result = isInWhiteList(value);
+            break;
+        case MF_OPERATOR_NINBL:
+            result = !isInBlackList(value);
+            break;
+        case MF_OPERATOR_INBL:
+            result = isInBlackList(value);
             break;
         default:
             qDebug() << "Invalid operator: " << m_Operator;
@@ -113,14 +133,9 @@ bool MFCondition::isAndCondition()
     return (m_CondOperator == MF_OPERATOR_AND);
 }
 
-void MFCondition::addWhiteList(const QList<QString> &list)
-{
-    m_WhiteList.append(list);
-}
-
 void MFCondition::addWhiteList(const QString &value)
 {
-    m_WhiteList.append(value);
+    m_WhiteList.insert(value, "");
     qDebug() << "count: " << m_WhiteList.size();
 }
 
@@ -129,14 +144,9 @@ void MFCondition::resetWhiteList()
     m_WhiteList.clear();
 }
 
-void MFCondition::addBlackList(const QList<QString> &list)
-{
-    m_BlackList.append(list);
-}
-
 void MFCondition::addBlackList(const QString &value)
 {
-    m_BlackList.append(value);
+    m_BlackList.insert(value, "");
 }
 
 void MFCondition::resetBlackList()
@@ -144,36 +154,28 @@ void MFCondition::resetBlackList()
     m_BlackList.clear();
 }
 
-void MFCondition::bfBuild()
-{
-
-}
-
-void MFCondition::bfContain(const QString &value)
-{
-    Q_UNUSED(value);
-}
-
 bool MFCondition::isInWhiteList(const QString &value)
 {
     qDebug() << "check value: " << value;
     qDebug() << "count: " << m_WhiteList.size();
-    if (m_WhiteList.size() > 0) {
-        QList<QString>::iterator it;
-        for (it = m_WhiteList.begin(); it != m_WhiteList.end(); it++) {
-            if (it->compare(value) == 0) {
-                qDebug() << "found: " << *it;
-                return true;
-            }
-        }
-    }
-
-    return false;
+    return m_WhiteList.contains(value);
 }
 
-bool MFCondition::isNotInWhiteList(const QString &value)
+bool MFCondition::isInBlackList(const QString &value)
 {
-    return !isInWhiteList(value);
+    qDebug() << "check value: " << value;
+    qDebug() << "count: " << m_WhiteList.size();
+    return m_BlackList.contains(value);
+}
+
+bool MFCondition::isInContact(const QString &value)
+{
+    if (m_ContactService == NULL) {
+        m_ContactService = new ContactService();
+    }
+    ContactSearchFilters filter;
+    filter.setSearchValue(value);
+    return (m_ContactService->searchContactsByPhoneNumber(filter).size() > 0);
 }
 
 int MFCondition::getOperator()

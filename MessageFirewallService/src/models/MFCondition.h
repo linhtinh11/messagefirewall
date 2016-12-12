@@ -9,11 +9,15 @@
 #define MFCONDITION_H_
 
 #include <QObject>
+#include <QHash>
 
 namespace bb {
     namespace pim {
         namespace message {
             class Message;
+        }
+        namespace contacts {
+            class ContactService;
         }
     }
 }
@@ -27,10 +31,12 @@ enum MF_OPERATOR {
     MF_OPERATOR_OR,         // or
     MF_OPERATOR_SW,         // start with
     MF_OPERATOR_EW,         // end with
-    MF_OPERATOR_NINW,       // not in white list
-    MF_OPERATOR_INW,        // in white list
-    MF_OPERATOR_NINB,       // not in black list
-    MF_OPERATOR_INB,        // in black list
+    MF_OPERATOR_NINCT,      // not in contact
+    MF_OPERATOR_INCT,       // in contact
+    MF_OPERATOR_NINWL,      // not in white list
+    MF_OPERATOR_INWL,       // in white list
+    MF_OPERATOR_NINBL,      // not in black list
+    MF_OPERATOR_INBL,       // in black list
 };
 
 enum MF_KEY {
@@ -46,10 +52,8 @@ public:
     virtual ~MFCondition();
     bool match(const bb::pim::message::Message &message);
     bool isAndCondition();
-    void addWhiteList(const QList<QString> &list);
     void addWhiteList(const QString &value);
     void resetWhiteList();
-    void addBlackList(const QList<QString> &list);
     void addBlackList(const QString &value);
     void resetBlackList();
     int getOperator();
@@ -59,15 +63,15 @@ private:
     int m_Operator;
     int m_CondOperator;
     QString m_Value;
-    QList<QString> m_WhiteList;
-    QList<QString> m_BlackList;
+    QHash<QString, QString> m_WhiteList;
+    QHash<QString, QString> m_BlackList;
+    bb::pim::contacts::ContactService *m_ContactService;
 
 private:
     bool doOperator(const QString &value);
     bool isInWhiteList(const QString &value);
-    bool isNotInWhiteList(const QString &value);
-    void bfContain(const QString &value);
-    void bfBuild();
+    bool isInBlackList(const QString &value);
+    bool isInContact(const QString &value);
 };
 
 #endif /* MFCONDITION_H_ */

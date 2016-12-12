@@ -31,12 +31,7 @@ namespace bb {
     namespace pim {
         namespace message {
             class MessageService;
-        }
-        namespace account {
-            class AccountService;
-        }
-        namespace contacts {
-            class ContactService;
+            class Messsage;
         }
     }
 }
@@ -52,17 +47,10 @@ private slots:
     void handleInvoke(const bb::system::InvokeRequest &);
     // sms received
     void messageReceived(bb::pim::account::AccountKey account_key, bb::pim::message::ConversationKey conv, bb::pim::message::MessageKey message_key);
-    // contact handlers
-    void mfContactsReset();
-    void mfContactsDeleted(QList<int> contactIds);
-    void mfContactsChanged(QList<int> contactIds);
-    void mfContactsAdded(QList<int> contactIds);
 
 private:
     bb::system::InvokeManager *m_invokeManager;
     bb::pim::message::MessageService *m_MessageService;
-    bb::pim::account::AccountService *m_AccountService;
-    bb::pim::contacts::ContactService *m_ContactService;
 
     int m_SmsAccountId;
 
@@ -71,6 +59,8 @@ private:
 
     void addContactToCondition(int smsId, MFCondition &con);
     void buildWhiteListContact(MFCondition &con);
+    void applyEmailRules(bb::pim::message::Message msg);
+    void applySmsRules(bb::pim::message::Message msg);
 };
 
 #endif /* SERVICE_H_ */

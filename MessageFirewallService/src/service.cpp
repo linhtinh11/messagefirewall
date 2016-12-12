@@ -40,9 +40,7 @@ using namespace bb::pim::contacts;
 Service::Service() :
         QObject(),
         m_invokeManager(new InvokeManager(this)),
-        m_MessageService(new MessageService()),
-        m_AccountService(new bb::pim::account::AccountService()),
-        m_ContactService(new bb::pim::contacts::ContactService())
+        m_MessageService(new MessageService())
 {
     // invoke for email
     m_invokeManager->connect(m_invokeManager, SIGNAL(invoked(const bb::system::InvokeRequest&)),
@@ -53,24 +51,10 @@ Service::Service() :
                 SIGNAL(messageAdded(bb::pim::account::AccountKey, bb::pim::message::ConversationKey, bb::pim::message::MessageKey)),
                 SLOT(messageReceived(bb::pim::account::AccountKey, bb::pim::message::ConversationKey, bb::pim::message::MessageKey)));
 
-    qRegisterMetaType<QList<int> >("QList<int>");
-    // invoke for contact
-    connect(m_ContactService,
-            SIGNAL(contactsAdded(QList<int>)),
-            SLOT(mfContactsAdded(QList<int>)));
-    connect(m_ContactService,
-            SIGNAL(contactsChanged(QList<int>)),
-            SLOT(mfContactsChanged(QList<int>)));
-    connect(m_ContactService,
-            SIGNAL(contactsDeleted(QList<int>)),
-            SLOT(mfContactsDeleted(QList<int>)));
-    connect(m_ContactService,
-            SIGNAL(contactsReset()),
-            SLOT(mfContactsReset()));
-
     // get sms account id
     qDebug() << "MF getting SMS-MMS account";
-    QList<bb::pim::account::Account> account_list = m_AccountService->accounts(bb::pim::account::Service::Messages, "sms-mms");
+    bb::pim::account::AccountService accService;
+    QList<bb::pim::account::Account> account_list = accService.accounts(bb::pim::account::Service::Messages, "sms-mms");
     qDebug() << "MF account size: " << account_list.size();
     m_SmsAccountId = 0;
     if (account_list.size() > 0) {
@@ -92,55 +76,55 @@ Service::Service() :
 
     // built-in sms rules
     MFRule sRule1(MF_RULE_SMS);
+    // set condition
+    sRule1.addCondition(MFCondition(MF_KEY_SENDER, "", MF_OPERATOR_NINCT, MF_OPERATOR_AND));
     // set action
     sRule1.addAction(MFAction(MF_ACTION_DELETE));
-    // set condition
-    MFCondition con(MF_KEY_SENDER, "", MF_OPERATOR_NINW, MF_OPERATOR_AND);
-    buildWhiteListContact(con);
-    sRule1.addCondition(con);
     m_RulesSms.append(sRule1);
 }
 
 void Service::buildWhiteListContact(MFCondition &con)
 {
-    QList<Contact> contactPage;
-    ContactListFilters options;
-    const int maxLimit = 20;
-    options.setLimit(maxLimit);
-    do {
-        contactPage = m_ContactService->contacts(options);
-        QList<Contact>::iterator it;
-        for (it=contactPage.begin(); it!=contactPage.end(); it++) {
-            addContactToCondition(it->id(), con);
-        }
-        if (contactPage.size() == maxLimit) {
-            options.setAnchorId(contactPage[maxLimit-1].id());
-        } else {
-            break;
-        }
-    } while (true);
+    Q_UNUSED(con);
+//    QList<Contact> contactPage;
+//    ContactListFilters options;
+//    const int maxLimit = 20;
+//    options.setLimit(maxLimit);
+//    do {
+//        contactPage = m_ContactService->contacts(options);
+//        QList<Contact>::iterator it;
+//        for (it=contactPage.begin(); it!=contactPage.end(); it++) {
+//            addContactToCondition(it->id(), con);
+//        }
+//        if (contactPage.size() == maxLimit) {
+//            options.setAnchorId(contactPage[maxLimit-1].id());
+//        } else {
+//            break;
+//        }
+//    } while (true);
 }
 
 void Service::addContactToCondition(int smsId, MFCondition &con)
 {
-    Contact ct;
-    ct = m_ContactService->contactDetails(smsId);
-    QList<ContactAttribute> attrs = ct.phoneNumbers();
-    qDebug() << "MF contact: " << ct.displayName() << " phones count: " << attrs.size();
-    QList<ContactAttribute>::iterator ait;
-    for (ait=attrs.begin(); ait!=attrs.end(); ait++) {
-        QString no = ait->value();
-        if (no.startsWith("+")) {
-            con.addWhiteList(no);
-        } else if (no.startsWith("0")) {
-            no = "+84" + no.remove(0, 1);
-            con.addWhiteList(no);
-        } else {
-            no = "+84" + no;
-            con.addWhiteList(no);
-        }
-        qDebug() << " with phone: " << no;
-    }
+    Q_UNUSED(smsId);
+    Q_UNUSED(con);
+//    Contact ct;
+//    ct = m_ContactService->contactDetails(smsId);
+//    QList<ContactAttribute> attrs = ct.phoneNumbers();
+//    qDebug() << "MF contact: " << ct.displayName() << " phones count: " << attrs.size();
+//    QList<ContactAttribute>::iterator ait;
+//    for (ait=attrs.begin(); ait!=attrs.end(); ait++) {
+//        QString no = ait->value();
+//        if (no.startsWith("+")) {
+//            con.addWhiteList(no);
+//        } else if (no.startsWith("0")) {
+//            no = "+84" + no.remove(0, 1);
+//            con.addWhiteList(no);
+//        } else {
+//            con.addWhiteList(no);
+//        }
+//        qDebug() << " with phone: " << no;
+//    }
 }
 
 /*
@@ -181,12 +165,7 @@ void Service::handleInvoke(const bb::system::InvokeRequest & request)
                 }
                 // get message info
                 Message msg = m_MessageService->message(accId, msgId);
-                QList<MFRule>::iterator iRule;
-                // loop through the rules
-                for (iRule = m_RulesEmail.begin(); iRule != m_RulesEmail.end(); iRule++) {
-                    // apply rule on the message
-                    iRule->apply(*m_MessageService, msg);
-                }
+                applyEmailRules(msg);
             }
         }
     }
@@ -196,83 +175,45 @@ void Service::messageReceived(bb::pim::account::AccountKey account_key, bb::pim:
 {
     qDebug() << "MF message received";
     Q_UNUSED(conv);
-    if (m_SmsAccountId == 0 && m_SmsAccountId != account_key) {
+    if (m_SmsAccountId == account_key) {
+        // get msg info
+        Message message = m_MessageService->message(account_key, message_key);
+        qDebug() << "MF Message mime type:" << message.mimeType();
         // it's not sms account
-        qDebug() << "MF it's not sms";
-        return;
+        qDebug() << "MF it's sms account";
+        if (message.mimeType() == MimeTypes::Sms && message.isInbound()) {
+            qDebug() << "MF It's a SMS!!! and an incoming sms";
+            applySmsRules(message);
+        }
+    } else {
+//        qDebug() << "MF it may be email account";
+//        if (message.isInbound()) {
+//            qDebug() << "MF it may be incoming email";
+//            applyEmailRules(message);
+//        }
     }
+}
 
-    // get msg info
-    Message message = m_MessageService->message(account_key, message_key);
-    qDebug() << "MF Message mime type:" << message.mimeType();
-    if (message.mimeType() != MimeTypes::Sms || !message.isInbound()) {
-        qDebug() << "MF It's not an SMS!!! or not an incoming sms";
-        return;
+void Service::applyEmailRules(bb::pim::message::Message msg)
+{
+    QList<MFRule>::iterator iRule;
+    // loop through the rules
+    for (iRule = m_RulesEmail.begin(); iRule != m_RulesEmail.end(); iRule++) {
+        // apply rule on the message
+        iRule->apply(*m_MessageService, msg);
     }
+}
 
+void Service::applySmsRules(bb::pim::message::Message msg)
+{
     // it's an incoming sms message
-    qDebug() << "MF sender displayableName:" << message.sender().displayableName();
-    qDebug() << "MF sender address:" << message.sender().address();
-    qDebug() << "MF sender name:" << message.sender().name();
+    qDebug() << "MF sender displayableName:" << msg.sender().displayableName();
+    qDebug() << "MF sender address:" << msg.sender().address();
+    qDebug() << "MF sender name:" << msg.sender().name();
     QList<MFRule>::iterator iRule;
     // loop through the rules
     for (iRule = m_RulesSms.begin(); iRule != m_RulesSms.end(); iRule++) {
         // apply rule on the message
-        iRule->apply(*m_MessageService, message);
-    }
-}
-
-void Service::mfContactsReset()
-{
-    qDebug() << "MF contact reset";
-    QList<MFRule>::iterator iRule;
-    // loop through the rules
-    for (iRule = m_RulesSms.begin(); iRule != m_RulesSms.end(); iRule++) {
-        QList<MFCondition> cons = iRule->getConditions();
-        QList<MFCondition>::iterator it;
-        for (it=cons.begin(); it!=cons.end(); it++) {
-            if (it->getOperator() == MF_OPERATOR_NINW) {
-                qDebug() << "MF reset white list";
-                // reset white list
-                it->resetWhiteList();
-                // rebuild white list
-                buildWhiteListContact(*it);
-            }
-        }
-    }
-}
-
-void Service::mfContactsDeleted(QList<int> contactIds)
-{
-    qDebug() << "MF contact changed";
-    Q_UNUSED(contactIds);
-    mfContactsReset();
-}
-
-void Service::mfContactsChanged(QList<int> contactIds)
-{
-    qDebug() << "MF contact changed";
-    Q_UNUSED(contactIds);
-    mfContactsReset();
-}
-
-void Service::mfContactsAdded(QList<int> contactIds)
-{
-    qDebug() << "MF contact added";
-    QList<MFRule>::iterator iRule;
-    // loop through the rules
-    for (iRule = m_RulesSms.begin(); iRule != m_RulesSms.end(); iRule++) {
-        QList<MFCondition> cons = iRule->getConditions();
-        QList<MFCondition>::iterator it;
-        for (it=cons.begin(); it!=cons.end(); it++) {
-            if (it->getOperator() == MF_OPERATOR_NINW) {
-                // add more item to white list
-                QList<int>::iterator cit;
-                for (cit=contactIds.begin(); cit!=contactIds.end(); cit++) {
-                    qDebug() << "MF add new contact";
-                    addContactToCondition(*cit, *it);
-                }
-            }
-        }
+        iRule->apply(*m_MessageService, msg);
     }
 }
