@@ -11,8 +11,10 @@
 #include "MFAction.h"
 #include <bb/pim/message/MessageService>
 #include <bb/pim/message/Message>
+#include <bb/system/phone/Phone>
 
 using namespace bb::pim::message;
+using namespace bb::system::phone;
 
 MFRule::MFRule(int type):
         m_Type(type)
@@ -70,6 +72,38 @@ bool MFRule::apply(MessageService &service, Message &message)
                     data.insert(CONVERSATION_ID, QVariant(message.conversationId()));
                 }
                 result = iAct->doAction(service, data);
+            }
+        }
+    }
+
+    return result;
+}
+
+bool MFRule::apply(bb::system::phone::Phone &phone, const bb::system::phone::Call &call)
+{
+    bool result = false;
+
+    if (m_Conditions.size() > 0 && m_Actions.size() > 0) {
+        QList<MFCondition>::iterator iCon;
+        bool matchCons = true, tmp;
+        for (iCon = m_Conditions.begin(); iCon != m_Conditions.end(); iCon++) {
+            tmp = iCon->match(call);
+            if (iCon == m_Conditions.begin()) {
+                matchCons = tmp;
+            } else {
+                if (iCon->isAndCondition()) {
+                    matchCons = matchCons && tmp;
+                } else {
+                    matchCons = matchCons || tmp;
+                }
+            }
+        }
+        if (matchCons) {
+            QList<MFAction>::iterator iAct;
+            for (iAct = m_Actions.begin(); iAct != m_Actions.end(); iAct++) {
+                QVariantMap data;
+                data.insert(CALL_ID, QVariant(call.callId()));
+                result = iAct->doAction(phone, data);
             }
         }
     }

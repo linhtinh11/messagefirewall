@@ -11,9 +11,12 @@
 #include <bb/pim/message/Message>
 #include <bb/pim/contacts/ContactService>
 #include <bb/pim/contacts/Contact>
+#include <bb/system/phone/Phone>
 
 using namespace bb::pim::message;
 using namespace bb::pim::contacts;
+
+bb::pim::contacts::ContactService *MFCondition::m_ContactService = new ContactService();
 
 MFCondition::MFCondition():
             m_Key(0),
@@ -22,7 +25,6 @@ MFCondition::MFCondition():
             m_Value("")
 {
     // TODO Auto-generated constructor stub
-    m_ContactService = NULL;
 }
 
 MFCondition::MFCondition(MF_KEY key, QString value, MF_OPERATOR op, MF_OPERATOR conOp):
@@ -31,16 +33,11 @@ MFCondition::MFCondition(MF_KEY key, QString value, MF_OPERATOR op, MF_OPERATOR 
         m_CondOperator(conOp),
         m_Value(value)
 {
-    m_ContactService = NULL;
 }
 
 MFCondition::~MFCondition()
 {
     // TODO Auto-generated destructor stub
-    if (m_ContactService != NULL) {
-        delete m_ContactService;
-        m_ContactService = NULL;
-    }
 }
 
 bool MFCondition::match(const Message &message)
@@ -59,6 +56,24 @@ bool MFCondition::match(const Message &message)
                 result = doOperator(message.subject());
             }
                 break;
+        default:
+            qDebug() << "Invalid key: " << m_Key;
+            break;
+    }
+
+    return result;
+}
+
+bool MFCondition::match(const bb::system::phone::Call &call)
+{
+    bool result = false;
+
+    switch (m_Key) {
+        case MF_KEY_NUMBER:
+            {
+                result = doOperator(call.phoneNumber());
+            }
+            break;
         default:
             qDebug() << "Invalid key: " << m_Key;
             break;
@@ -120,6 +135,9 @@ bool MFCondition::doOperator(const QString &value)
         case MF_OPERATOR_INBL:
             result = isInBlackList(value);
             break;
+        case MF_OPERATOR_BLTOACC:
+            result = belongToAccount(value);
+            break;
         default:
             qDebug() << "Invalid operator: " << m_Operator;
             break;
@@ -170,16 +188,33 @@ bool MFCondition::isInBlackList(const QString &value)
 
 bool MFCondition::isInContact(const QString &value)
 {
-    if (m_ContactService == NULL) {
-        m_ContactService = new ContactService();
-    }
     ContactSearchFilters filter;
     filter.setLimit(1);
     filter.setSearchValue(value);
-    return (m_ContactService->searchContactsByPhoneNumber(filter).size() > 0);
+    return (MFCondition::m_ContactService->searchContactsByPhoneNumber(filter).size() > 0);
 }
 
 int MFCondition::getOperator()
 {
     return m_Operator;
+}
+
+bool MFCondition::belongToAccount(const QString &value)
+{
+    bool result = false;
+    ContactSearchFilters filter;
+    filter.setLimit(100);
+    filter.setSearchValue(value);
+    QList<Contact> list = MFCondition::m_ContactService->searchContactsByPhoneNumber(filter);
+    if (list.size() > 0) {
+        QList<Contact>::iterator it;
+        for (it=list.begin(); it!=list.end(); it++) {
+            Contact ct = MFCondition::m_ContactService->contactDetails(it->id());
+            if (ct.displayName().compare(m_Value) == 0) {
+                result = true;
+                break;
+            }
+        }
+    }
+    return result;
 }

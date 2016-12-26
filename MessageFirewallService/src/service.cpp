@@ -29,6 +29,7 @@
 #include <bb/pim/message/MimeTypes>
 #include <bb/pim/contacts/ContactService>
 #include <bb/pim/contacts/Contact>
+#include <bb/system/phone/Phone>
 
 #include <QTimer>
 
@@ -36,11 +37,13 @@ using namespace bb::system;
 using namespace bb::data;
 using namespace bb::pim::message;
 using namespace bb::pim::contacts;
+using namespace bb::system::phone;
 
 Service::Service() :
         QObject(),
         m_invokeManager(new InvokeManager(this)),
-        m_MessageService(new MessageService())
+        m_MessageService(new MessageService()),
+        m_Phone(new Phone())
 {
     // invoke for email
     m_invokeManager->connect(m_invokeManager, SIGNAL(invoked(const bb::system::InvokeRequest&)),
@@ -50,6 +53,11 @@ Service::Service() :
     connect(m_MessageService,
                 SIGNAL(messageAdded(bb::pim::account::AccountKey, bb::pim::message::ConversationKey, bb::pim::message::MessageKey)),
                 SLOT(messageReceived(bb::pim::account::AccountKey, bb::pim::message::ConversationKey, bb::pim::message::MessageKey)));
+
+    // invoke for phone call
+    connect(m_Phone,
+            SIGNAL(callUpdated(bb::system::phone::Call)),
+            SLOT(callReceived(bb::system::phone::Call)));
 
     // get sms account id
     qDebug() << "MF getting SMS-MMS account";
@@ -70,6 +78,9 @@ Service::Service() :
     rule2.addCondition(MFCondition(MF_KEY_SUBJECT, "[BEAT-", MF_OPERATOR_SW, MF_OPERATOR_AND));
     rule2.addCondition(MFCondition(MF_KEY_SUBJECT, "[BEAT] ", MF_OPERATOR_SW, MF_OPERATOR_OR));
     rule2.addCondition(MFCondition(MF_KEY_SUBJECT, "[LGBT-", MF_OPERATOR_SW, MF_OPERATOR_OR));
+    rule2.addCondition(MFCondition(MF_KEY_SUBJECT, "[LGBT] ", MF_OPERATOR_SW, MF_OPERATOR_OR));
+    rule2.addCondition(MFCondition(MF_KEY_SUBJECT, "[DAITO_LOOPS-", MF_OPERATOR_SW, MF_OPERATOR_OR));
+    rule2.addCondition(MFCondition(MF_KEY_SUBJECT, "[DAITO_LOOPS] ", MF_OPERATOR_SW, MF_OPERATOR_OR));
     rule2.addAction(MFAction(MF_ACTION_DELETE));
     m_RulesEmail.append(rule);
     m_RulesEmail.append(rule2);
@@ -78,9 +89,18 @@ Service::Service() :
     MFRule sRule1(MF_RULE_SMS);
     // set condition
     sRule1.addCondition(MFCondition(MF_KEY_SENDER, "", MF_OPERATOR_NINCT, MF_OPERATOR_AND));
+    MFCondition whiteList = MFCondition(MF_KEY_SENDER, "", MF_OPERATOR_NINWL, MF_OPERATOR_AND);
+    whiteList.addWhiteList("Apple");
+    sRule1.addCondition(whiteList);
     // set action
     sRule1.addAction(MFAction(MF_ACTION_DELETE));
     m_RulesSms.append(sRule1);
+
+    // built-in phone call rules
+    MFRule pRule1(MF_RULE_PHONE);
+    pRule1.addCondition(MFCondition(MF_KEY_NUMBER, "spammer", MF_OPERATOR_BLTOACC, MF_OPERATOR_AND));
+    pRule1.addAction(MFAction(MF_ACTION_ENDCALL));
+    m_RulesPhoneCall.append(pRule1);
 }
 
 void Service::buildWhiteListContact(MFCondition &con)
@@ -215,5 +235,21 @@ void Service::applySmsRules(bb::pim::message::Message msg)
     for (iRule = m_RulesSms.begin(); iRule != m_RulesSms.end(); iRule++) {
         // apply rule on the message
         iRule->apply(*m_MessageService, msg);
+    }
+}
+
+void Service::callReceived(const bb::system::phone::Call &call)
+{
+    qDebug() << "MF call from:" << call.phoneNumber();
+    if (call.callLine() == LineType::Cellular
+            && call.callType() == CallType::Incoming
+            && call.phoneNumber().length() > 0) {
+        qDebug() << "MF it's an incoming call on cellular line";
+        QList<MFRule>::iterator iRule;
+        // loop through the rules
+        for (iRule = m_RulesPhoneCall.begin(); iRule != m_RulesPhoneCall.end(); iRule++) {
+            // apply rule on the call
+            iRule->apply(*m_Phone, call);
+        }
     }
 }

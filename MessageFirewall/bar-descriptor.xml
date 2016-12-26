@@ -116,6 +116,9 @@
         <permission>access_pimdomain_messages</permission>
         <permission>access_pimdomain_contacts</permission>
         <permission>access_sms_mms</permission>
+        <permission>access_phone</permission>
+        <permission>control_phone</permission>
+        <permission>read_phonecall_details</permission>
     </entryPoint>
 
     <invoke-target id="vn.ht.MessageFirewallService">

@@ -13,6 +13,12 @@
 class MFAction;
 class MFCondition;
 namespace bb {
+    namespace system {
+        namespace phone {
+            class Phone;
+            class Call;
+        }
+    }
     namespace pim {
         namespace message {
             class MessageService;
@@ -23,7 +29,8 @@ namespace bb {
 
 enum MF_RULE_TYPE {
     MF_RULE_EMAIL = 0,
-    MF_RULE_SMS
+    MF_RULE_SMS,
+    MF_RULE_PHONE,
 };
 
 class MFRule
@@ -34,6 +41,7 @@ public:
     void addCondition(const MFCondition &con);
     void addAction(const MFAction &action);
     bool apply(bb::pim::message::MessageService &service, bb::pim::message::Message &message);
+    bool apply(bb::system::phone::Phone &phone, const bb::system::phone::Call &call);
     QList<MFCondition> getConditions();
 
 private:

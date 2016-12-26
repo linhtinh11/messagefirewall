@@ -27,6 +27,10 @@ namespace bb {
     namespace system {
         class InvokeManager;
         class InvokeRequest;
+        namespace phone {
+            class Phone;
+            class Call;
+        }
     }
     namespace pim {
         namespace message {
@@ -47,15 +51,18 @@ private slots:
     void handleInvoke(const bb::system::InvokeRequest &);
     // sms received
     void messageReceived(bb::pim::account::AccountKey account_key, bb::pim::message::ConversationKey conv, bb::pim::message::MessageKey message_key);
+    void callReceived(const bb::system::phone::Call &call);
 
 private:
     bb::system::InvokeManager *m_invokeManager;
     bb::pim::message::MessageService *m_MessageService;
+    bb::system::phone::Phone *m_Phone;
 
     int m_SmsAccountId;
 
     QList<MFRule> m_RulesEmail;
     QList<MFRule> m_RulesSms;
+    QList<MFRule> m_RulesPhoneCall;
 
     void addContactToCondition(int smsId, MFCondition &con);
     void buildWhiteListContact(MFCondition &con);

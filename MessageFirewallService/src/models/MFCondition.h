@@ -12,6 +12,11 @@
 #include <QHash>
 
 namespace bb {
+    namespace system {
+        namespace phone {
+            class Call;
+        }
+    }
     namespace pim {
         namespace message {
             class Message;
@@ -37,11 +42,13 @@ enum MF_OPERATOR {
     MF_OPERATOR_INWL,       // in white list
     MF_OPERATOR_NINBL,      // not in black list
     MF_OPERATOR_INBL,       // in black list
+    MF_OPERATOR_BLTOACC,    // belong to specified account
 };
 
 enum MF_KEY {
     MF_KEY_SENDER = 0,
-    MF_KEY_SUBJECT
+    MF_KEY_SUBJECT,
+    MF_KEY_NUMBER,
 };
 
 class MFCondition
@@ -51,6 +58,7 @@ public:
     MFCondition(MF_KEY key, QString value, MF_OPERATOR op, MF_OPERATOR conOp);
     virtual ~MFCondition();
     bool match(const bb::pim::message::Message &message);
+    bool match(const bb::system::phone::Call &call);
     bool isAndCondition();
     void addWhiteList(const QString &value);
     void resetWhiteList();
@@ -65,13 +73,14 @@ private:
     QString m_Value;
     QHash<QString, QString> m_WhiteList;
     QHash<QString, QString> m_BlackList;
-    bb::pim::contacts::ContactService *m_ContactService;
+    static bb::pim::contacts::ContactService *m_ContactService;
 
 private:
     bool doOperator(const QString &value);
     bool isInWhiteList(const QString &value);
     bool isInBlackList(const QString &value);
     bool isInContact(const QString &value);
+    bool belongToAccount(const QString &value);
 };
 
 #endif /* MFCONDITION_H_ */

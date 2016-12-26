@@ -10,6 +10,7 @@
 
 #include <bb/pim/account/Account>
 #include <bb/pim/message/MessageService>
+#include <bb/system/phone/Phone>
 
 using namespace bb::pim::message;
 
@@ -49,6 +50,28 @@ bool MFAction::doAction(MessageService &service, const QVariantMap &data)
                     if (ok_acc) {
                         service.remove(accId, conKey);
                     }
+                }
+            }
+            break;
+        default:
+            break;
+    }
+
+    return result;
+}
+
+bool MFAction::doAction(bb::system::phone::Phone &phone, const QVariantMap &data)
+{
+    bool result = false;
+
+    switch (m_Action) {
+        case MF_ACTION_ENDCALL:
+            if (data.contains(CALL_ID)) {
+                bool ok_call, ok_msg;
+                int callId = data.value(CALL_ID).toInt(&ok_call);
+                if (ok_call) {
+                    phone.endCall(callId);
+                    result = true;
                 }
             }
             break;
