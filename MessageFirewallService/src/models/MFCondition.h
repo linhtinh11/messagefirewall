@@ -49,6 +49,7 @@ enum MF_KEY {
     MF_KEY_SENDER = 0,
     MF_KEY_SUBJECT,
     MF_KEY_NUMBER,
+    MF_KEY_SENDER_NAME,
 };
 
 class MFCondition

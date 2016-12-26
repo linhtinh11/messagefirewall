@@ -46,16 +46,28 @@ bool MFCondition::match(const Message &message)
 
     switch (m_Key) {
         case MF_KEY_SENDER:
-        {
-            MessageContact sender = message.sender();
-            result = doOperator(sender.address());
-        }
+            {
+                MessageContact sender = message.sender();
+                result = doOperator(sender.address());
+            }
+            break;
+        case MF_KEY_SENDER_NAME:
+            {
+                MessageContact sender = message.sender();
+                result = doOperator(sender.name());
+            }
             break;
         case MF_KEY_SUBJECT:
             {
                 result = doOperator(message.subject());
             }
                 break;
+        case MF_KEY_NUMBER:
+            {
+                MessageContact sender = message.sender();
+                result = doOperator(sender.address());
+            }
+            break;
         default:
             qDebug() << "Invalid key: " << m_Key;
             break;
@@ -174,15 +186,11 @@ void MFCondition::resetBlackList()
 
 bool MFCondition::isInWhiteList(const QString &value)
 {
-    qDebug() << "check value: " << value;
-    qDebug() << "count: " << m_WhiteList.size();
     return m_WhiteList.contains(value);
 }
 
 bool MFCondition::isInBlackList(const QString &value)
 {
-    qDebug() << "check value: " << value;
-    qDebug() << "count: " << m_WhiteList.size();
     return m_BlackList.contains(value);
 }
 

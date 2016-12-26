@@ -96,6 +96,11 @@ Service::Service() :
     sRule1.addAction(MFAction(MF_ACTION_DELETE));
     m_RulesSms.append(sRule1);
 
+    MFRule sRule2(MF_RULE_SMS);
+    sRule2.addCondition(MFCondition(MF_KEY_SENDER_NAME, "spammer", MF_OPERATOR_EQ, MF_OPERATOR_AND));
+    sRule2.addAction(MFAction(MF_ACTION_DELETE));
+    m_RulesSms.append(sRule2);
+
     // built-in phone call rules
     MFRule pRule1(MF_RULE_PHONE);
     pRule1.addCondition(MFCondition(MF_KEY_NUMBER, "spammer", MF_OPERATOR_BLTOACC, MF_OPERATOR_AND));
