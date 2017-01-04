@@ -30,6 +30,7 @@
 #include <bb/pim/contacts/ContactService>
 #include <bb/pim/contacts/Contact>
 #include <bb/system/phone/Phone>
+#include <QSettings>
 
 #include <QTimer>
 
@@ -39,12 +40,36 @@ using namespace bb::pim::message;
 using namespace bb::pim::contacts;
 using namespace bb::system::phone;
 
+const QString Service::m_author = "ht"; // for creating settings
+const QString Service::m_appName = "MessageFirewall"; // for creating settings
+
+// keys for setting file
+const QString Service::m_s_activeEmail = "ActiveEmail";
+const QString Service::m_s_activeSMS = "ActiveSMS";
+const QString Service::m_s_activePhone = "ActivePhone";
+
 Service::Service() :
         QObject(),
         m_invokeManager(new InvokeManager(this)),
         m_MessageService(new MessageService()),
-        m_Phone(new Phone())
+        m_Phone(new Phone()),
+        m_settingsWatcher(new QFileSystemWatcher(this))
 {
+    // read settings file
+    // set the initial qsettings keys/values upon startup
+    QSettings settings(m_author, m_appName);
+    settings.setValue(m_s_activeEmail, true);
+    settings.setValue(m_s_activeSMS, true);
+    settings.setValue(m_s_activePhone, true);
+    settings.sync();
+    readSettings(settings);
+    // Watcher for changes in the settings file.
+    qDebug() << "settings file: " << settings.fileName();
+    m_settingsWatcher->addPath(settings.fileName());
+    connect(m_settingsWatcher,
+            SIGNAL(fileChanged(const QString&)),
+            SLOT(settingsChanged(const QString&)));
+
     // invoke for email
     m_invokeManager->connect(m_invokeManager, SIGNAL(invoked(const bb::system::InvokeRequest&)),
             this, SLOT(handleInvoke(const bb::system::InvokeRequest&)));
@@ -158,6 +183,11 @@ void Service::addContactToCondition(int smsId, MFCondition &con)
 void Service::handleInvoke(const bb::system::InvokeRequest & request)
 {
     if (request.action().compare("bb.action.email.RECEIVED") == 0) {
+        // actived email firewall or not
+        if (!m_activatedEmail) {
+            return;
+        }
+
         // get request data
         QByteArray data = request.data();
 #ifdef QT_DEBUG
@@ -235,6 +265,12 @@ void Service::applySmsRules(bb::pim::message::Message msg)
     qDebug() << "MF sender displayableName:" << msg.sender().displayableName();
     qDebug() << "MF sender address:" << msg.sender().address();
     qDebug() << "MF sender name:" << msg.sender().name();
+
+    // actived sms firewall or not
+    if (!m_activatedSMS) {
+        return;
+    }
+
     QList<MFRule>::iterator iRule;
     // loop through the rules
     for (iRule = m_RulesSms.begin(); iRule != m_RulesSms.end(); iRule++) {
@@ -246,6 +282,11 @@ void Service::applySmsRules(bb::pim::message::Message msg)
 void Service::callReceived(const bb::system::phone::Call &call)
 {
     qDebug() << "MF call from:" << call.phoneNumber();
+    // actived phone firewall or not
+    if (!m_activatedPhone) {
+        return;
+    }
+
     if (call.callLine() == LineType::Cellular
             && call.callType() == CallType::Incoming
             && call.phoneNumber().length() > 0) {
@@ -257,4 +298,21 @@ void Service::callReceived(const bb::system::phone::Call &call)
             iRule->apply(*m_Phone, call);
         }
     }
+}
+
+void Service::settingsChanged(const QString & path)
+{
+    qDebug() << "MF settings file changed: " << path;
+    QSettings settings(m_author, m_appName);
+    readSettings(settings);
+}
+
+void Service::readSettings(const QSettings &settings)
+{
+    m_activatedEmail = settings.value(m_s_activeEmail, true).toBool();
+    m_activatedSMS = settings.value(m_s_activeSMS, true).toBool();
+    m_activatedPhone = settings.value(m_s_activePhone, true).toBool();
+    qDebug() << "active email: " << m_activatedEmail;
+    qDebug() << "active sms: " << m_activatedSMS;
+    qDebug() << "active phone: " << m_activatedPhone;
 }

@@ -43,6 +43,8 @@ public:
     virtual ~ApplicationUI() { }
 
     Q_INVOKABLE void resendNotification();
+    Q_INVOKABLE void changedToggleValue(int button, bool value);
+    Q_INVOKABLE bool getToggleValue(int button);
 
 private slots:
     void onSystemLanguageChanged();
@@ -50,6 +52,15 @@ private:
     QTranslator* m_translator;
     bb::cascades::LocaleHandler* m_localeHandler;
     bb::system::InvokeManager* m_invokeManager;
+
+    // settings init
+    static const QString m_author; // for creating settings
+    static const QString m_appName; // for creating settings
+
+    // keys used in setting
+    static const QString m_s_activeEmail;
+    static const QString m_s_activeSMS;
+    static const QString m_s_activePhone;
 };
 
 #endif /* ApplicationUI_HPP_ */

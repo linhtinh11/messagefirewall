@@ -21,9 +21,11 @@
 #include "models/MFRule.h"
 #include <bb/pim/message/Keys>
 #include <bb/pim/account/Account>
+#include <QFileSystemWatcher>
 
 namespace bb {
     class Application;
+
     namespace system {
         class InvokeManager;
         class InvokeRequest;
@@ -39,6 +41,7 @@ namespace bb {
         }
     }
 }
+class QSettings;
 
 class Service: public QObject
 {
@@ -52,22 +55,37 @@ private slots:
     // sms received
     void messageReceived(bb::pim::account::AccountKey account_key, bb::pim::message::ConversationKey conv, bb::pim::message::MessageKey message_key);
     void callReceived(const bb::system::phone::Call &call);
+    void settingsChanged(const QString & path);
 
 private:
     bb::system::InvokeManager *m_invokeManager;
     bb::pim::message::MessageService *m_MessageService;
     bb::system::phone::Phone *m_Phone;
+    QFileSystemWatcher* m_settingsWatcher;
 
     int m_SmsAccountId;
+    bool m_activatedEmail;
+    bool m_activatedSMS;
+    bool m_activatedPhone;
 
     QList<MFRule> m_RulesEmail;
     QList<MFRule> m_RulesSms;
     QList<MFRule> m_RulesPhoneCall;
 
+    // settings init
+    static const QString m_author; // for creating settings
+    static const QString m_appName; // for creating settings
+
+    // keys used in setting
+    static const QString m_s_activeEmail;
+    static const QString m_s_activeSMS;
+    static const QString m_s_activePhone;
+
     void addContactToCondition(int smsId, MFCondition &con);
     void buildWhiteListContact(MFCondition &con);
     void applyEmailRules(bb::pim::message::Message msg);
     void applySmsRules(bb::pim::message::Message msg);
+    void readSettings(const QSettings &settings);
 };
 
 #endif /* SERVICE_H_ */

@@ -21,9 +21,18 @@
 #include <bb/cascades/AbstractPane>
 #include <bb/cascades/LocaleHandler>
 #include <bb/system/InvokeManager>
+#include <QSettings>
 
 using namespace bb::cascades;
 using namespace bb::system;
+
+const QString ApplicationUI::m_author = "ht"; // for creating settings
+const QString ApplicationUI::m_appName = "MessageFirewall"; // for creating settings
+
+// keys for setting file
+const QString ApplicationUI::m_s_activeEmail = "ActiveEmail";
+const QString ApplicationUI::m_s_activeSMS = "ActiveSMS";
+const QString ApplicationUI::m_s_activePhone = "ActivePhone";
 
 ApplicationUI::ApplicationUI() :
         QObject(),
@@ -47,7 +56,7 @@ ApplicationUI::ApplicationUI() :
     QmlDocument *qml = QmlDocument::create("asset:///main.qml").parent(this);
 
     // Make app available to the qml.
-    qml->setContextProperty("app", this);
+    qml->setContextProperty("_app", this);
 
     // Create root object for the UI
     AbstractPane *root = qml->createRootObject<AbstractPane>();
@@ -74,4 +83,40 @@ void ApplicationUI::resendNotification()
     request.setAction("com.example.MessageFirewallService.RESET");
     m_invokeManager->invoke(request);
     Application::instance()->minimize();
+}
+
+void ApplicationUI::changedToggleValue(int button, bool value)
+{
+    QSettings settings(m_author, m_appName);
+    qDebug() << "button: " << button << " changed: " << value;
+    switch(button) {
+        case 1:
+            settings.setValue(m_s_activeEmail, value);
+            break;
+        case 2:
+            settings.setValue(m_s_activeSMS, value);
+            break;
+        case 3:
+            settings.setValue(m_s_activePhone, value);
+            break;
+    }
+    settings.sync();
+}
+
+bool ApplicationUI::getToggleValue(int button)
+{
+    QSettings settings(m_author, m_appName);
+    bool result = true;
+    switch(button) {
+        case 1:
+            result = settings.value(m_s_activeEmail, true).toBool();
+            break;
+        case 2:
+            result = settings.value(m_s_activeSMS, true).toBool();
+            break;
+        case 3:
+            result = settings.value(m_s_activePhone, true).toBool();
+            break;
+    }
+    return result;
 }

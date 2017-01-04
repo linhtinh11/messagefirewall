@@ -19,6 +19,88 @@ import bb.cascades 1.4
 TabbedPane {
     id: mainTab
     showTabsOnActionBar: true
+
+    Tab {
+        title: qsTr("General")
+        Page {
+            Container {
+                layout: StackLayout {
+
+                }
+                Container {
+                    layout: DockLayout {
+
+                    }
+                    horizontalAlignment: HorizontalAlignment.Fill
+
+                    leftPadding: 10.0
+                    rightPadding: 10.0
+                    topPadding: 10.0
+                    Label {
+                        text: qsTr("Activate Email Firewall")
+                        verticalAlignment: VerticalAlignment.Center
+                        horizontalAlignment: HorizontalAlignment.Left
+                    }
+                    ToggleButton {
+                        checked: _app.getToggleValue(1)
+                        horizontalAlignment: HorizontalAlignment.Right
+                        onCheckedChanged: {
+                            _app.changedToggleValue(1, checked)
+                        }
+                    }
+                }
+
+                Container {
+                    layout: DockLayout {
+                    
+                    }
+                    horizontalAlignment: HorizontalAlignment.Fill
+                    
+                    leftPadding: 10.0
+                    rightPadding: 10.0
+                    topPadding: 10.0
+                    Label {
+                        text: qsTr("Activate SMS Firewall")
+                        verticalAlignment: VerticalAlignment.Center
+                        horizontalAlignment: HorizontalAlignment.Left
+                    }
+                    ToggleButton {
+                        checked: _app.getToggleValue(2)
+                        horizontalAlignment: HorizontalAlignment.Right
+                        onCheckedChanged: {
+                            _app.changedToggleValue(2, checked)
+                        }
+                    }
+                }
+                
+                Container {
+                    layout: DockLayout {
+                    
+                    }
+                    horizontalAlignment: HorizontalAlignment.Fill
+                    
+                    leftPadding: 10.0
+                    rightPadding: 10.0
+                    topPadding: 10.0
+                    Label {
+                        text: qsTr("Activate Phone Firewall")
+                        verticalAlignment: VerticalAlignment.Center
+                        horizontalAlignment: HorizontalAlignment.Left
+                    }
+                    ToggleButton {
+                        checked: _app.getToggleValue(3)
+                        horizontalAlignment: HorizontalAlignment.Right
+                        onCheckedChanged: {
+                            _app.changedToggleValue(3, checked)
+                        }
+                    }
+                }
+                
+            }
+
+        }
+
+    }
     
     Tab {
         title: qsTr("Email")

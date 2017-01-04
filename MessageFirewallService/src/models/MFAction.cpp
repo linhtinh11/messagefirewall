@@ -67,7 +67,7 @@ bool MFAction::doAction(bb::system::phone::Phone &phone, const QVariantMap &data
     switch (m_Action) {
         case MF_ACTION_ENDCALL:
             if (data.contains(CALL_ID)) {
-                bool ok_call, ok_msg;
+                bool ok_call;
                 int callId = data.value(CALL_ID).toInt(&ok_call);
                 if (ok_call) {
                     phone.endCall(callId);
